@@ -126,7 +126,6 @@ public class FaceDetection {
 		Ridx.put(1, 2, Ridx.get(1, 2) * f);
 		Ridx.put(2, 0, Ridx.get(2, 0) / f);
 		Ridx.put(2, 1, Ridx.get(2, 1) / f);
-		System.out.println(Ridx);
 
 		// We can allocate native arrays using constructors taking an integer as
 		// argument.
