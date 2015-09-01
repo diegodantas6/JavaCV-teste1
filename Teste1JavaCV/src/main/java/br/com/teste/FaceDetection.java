@@ -19,13 +19,14 @@ import static org.bytedeco.javacpp.opencv_imgproc.cvThreshold;
 import static org.bytedeco.javacpp.opencv_imgproc.cvWarpPerspective;
 import static org.bytedeco.javacpp.opencv_objdetect.CV_HAAR_DO_CANNY_PRUNING;
 
+import java.awt.Cursor;
 import java.io.File;
 
+import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.Loader;
 import org.bytedeco.javacpp.opencv_core.CvContour;
 import org.bytedeco.javacpp.opencv_core.CvMat;
 import org.bytedeco.javacpp.opencv_core.CvMemStorage;
-import org.bytedeco.javacpp.opencv_core.CvPoint;
 import org.bytedeco.javacpp.opencv_core.CvRect;
 import org.bytedeco.javacpp.opencv_core.CvScalar;
 import org.bytedeco.javacpp.opencv_core.CvSeq;
@@ -109,7 +110,7 @@ public class FaceDetection {
 		// We should also specify the relative monitor/camera response for
 		// proper gamma correction.
 		CanvasFrame frame = new CanvasFrame("Image Capture", CanvasFrame.getDefaultGamma() / grabber.getGamma());
-
+		
 		// Let's create some random 3D rotation...
 		CvMat randomR = CvMat.create(3, 3), randomAxis = CvMat.create(3, 1);
 		
@@ -127,10 +128,6 @@ public class FaceDetection {
 		Ridx.put(2, 0, Ridx.get(2, 0) / f);
 		Ridx.put(2, 1, Ridx.get(2, 1) / f);
 
-		// We can allocate native arrays using constructors taking an integer as
-		// argument.
-		CvPoint hatPoints = new CvPoint(3);
-
 		while (frame.isVisible() && (grabbedImage = converter.convert(grabber.grab())) != null) {
 			cvClearMemStorage(storage);
 
@@ -140,9 +137,19 @@ public class FaceDetection {
 			
 			int total = faces.total();
 			for (int i = 0; i < total; i++) {
-				CvRect r = new CvRect(cvGetSeqElem(faces, i));
+				
+				BytePointer pointer = cvGetSeqElem(faces, i);
+				
+				CvRect r = new CvRect(pointer);
+				
 				int x = r.x(), y = r.y(), w = r.width(), h = r.height();
-				cvRectangle(grabbedImage, cvPoint(x, y), cvPoint(x + w, y + h), CvScalar.RED, 1, CV_AA, 0);
+				
+				if (i == 0) {
+					cvRectangle(grabbedImage, cvPoint(x, y), cvPoint(x + w, y + h), CvScalar.GREEN, 1, CV_AA, 0);	
+				} else {
+					cvRectangle(grabbedImage, cvPoint(x, y), cvPoint(x + w, y + h), CvScalar.BLUE, 1, CV_AA, 0);
+				}
+				
 			}
 
 			// Let's find some contours! but first some thresholding...
@@ -154,10 +161,17 @@ public class FaceDetection {
 			cvFindContours(grayImage, storage, contour, Loader.sizeof(CvContour.class), CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 			
 			cvWarpPerspective(grabbedImage, rotatedImage, randomR);
-
+			
 			Frame rotatedFrame = converter.convert(rotatedImage);
 			frame.showImage(rotatedFrame);
+			
+//			frame.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//			frame.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+			
+//			frame.setCanvasSize(rotatedFrame.imageWidth, rotatedFrame.imageHeight + 100);
+			frame.setResizable(false);
 		}
+		
 		frame.dispose();
 		grabber.stop();
 		
